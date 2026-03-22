@@ -1,0 +1,14 @@
+[project]
+name = "swagger-mcp-server"
+version = "1.0.0"
+description = "MCP Server for Swagger/OpenAPI - API exploration and testing"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "openapi-schema-validator>=0.6.0",
+]
+
+[project.scripts]
+swagger-mcp-server = "src.server:main"
