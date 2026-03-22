@@ -1,9 +1,4 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(python -c \"import src.server; print('Server import OK')\")"
-    ]
-  },
   "mcpServers": {
     "swagger-mcp-server": {
       "command": "python",

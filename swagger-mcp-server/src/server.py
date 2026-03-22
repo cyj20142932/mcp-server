@@ -1,151 +1,100 @@
-"""MCP Server for Swagger/OpenAPI."""
+"""MCP Server for Swagger/OpenAPI - simple version."""
+import json
+import requests
+import yaml
+from pathlib import Path
 from fastmcp import FastMCP
 
 mcp = FastMCP("swagger-mcp-server")
 
 
-# ========== 后端管理工具 ==========
+def _load_spec():
+    """Load OpenAPI spec from config."""
+    from src import config
+
+    spec_file = config.get_spec_file()
+    if not spec_file:
+        return None, "Not configured. Run configure_swagger first."
+
+    spec_data = None
+
+    # Check if it's a URL
+    if spec_file.startswith("http://") or spec_file.startswith("https://"):
+        try:
+            response = requests.get(spec_file, timeout=30)
+            response.raise_for_status()
+            content = response.text
+
+            try:
+                spec_data = response.json()
+            except json.JSONDecodeError:
+                spec_data = yaml.safe_load(content)
+        except Exception as e:
+            return None, f"Failed to fetch spec: {e}"
+    else:
+        # It's a file path
+        spec_path = Path(spec_file)
+        if not spec_path.exists():
+            return None, f"Spec file not found: {spec_file}"
+
+        try:
+            with open(spec_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            try:
+                spec_data = json.loads(content)
+            except json.JSONDecodeError:
+                spec_data = yaml.safe_load(content)
+        except Exception as e:
+            return None, f"Failed to load spec: {e}"
+
+    return spec_data, None
+
 
 @mcp.tool()
-def add_backend(
-    name: str,
-    base_url: str,
-    spec_source: str = "",
-    spec_type: str = "url",
-    auth_type: str = "none",
-    auth_token: str = "",
-    auth_api_key: str = "",
-    auth_api_key_name: str = "X-API-Key",
-    auth_api_key_location: str = "header",
-    auth_username: str = "",
-    auth_password: str = "",
-    backend_id: str = "",
-) -> str:
-    """Add a new API backend with OpenAPI spec.
+def configure_swagger(spec_source: str, base_url: str) -> str:
+    """Configure OpenAPI spec file/URL and base URL.
 
     Args:
-        name: Backend name (e.g., "My API")
-        base_url: Base URL of the API (e.g., "https://api.example.com")
-        spec_source: URL or file path to OpenAPI spec (optional)
-        spec_type: "url" or "file" - how to load the spec
-        auth_type: Authentication type: none, bearer, apikey, basic
-        auth_token: Token for bearer auth
-        auth_api_key: API key value
-        auth_api_key_name: API key header/query name
-        auth_api_key_location: Where to send API key: header or query
-        auth_username: Username for basic auth
-        auth_password: Password for basic auth
-        backend_id: Custom ID for the backend (optional)
+        spec_source: Path to OpenAPI/Swagger JSON file, or URL to fetch spec
+        base_url: Base URL of the API (e.g., https://api.example.com)
     """
-    from src.tools import backend as backend_tools
-
-    return backend_tools.add_backend(
-        name=name,
-        base_url=base_url,
-        spec_source=spec_source,
-        spec_type=spec_type,
-        auth_type=auth_type,
-        auth_token=auth_token,
-        auth_api_key=auth_api_key,
-        auth_api_key_name=auth_api_key_name,
-        auth_api_key_location=auth_api_key_location,
-        auth_username=auth_username,
-        auth_password=auth_password,
-        backend_id=backend_id,
-    )
+    from src import config
+    return config.configure(spec_source, base_url)
 
 
 @mcp.tool()
-def remove_backend(backend_id: str) -> str:
-    """Remove an API backend."""
-    from src.tools import backend as backend_tools
-    return backend_tools.remove_backend(backend_id)
+def list_endpoints() -> str:
+    """List all API endpoints from the OpenAPI spec."""
+    from src.parser.openapi import OpenAPIParser
 
+    spec, error = _load_spec()
+    if error:
+        return error
 
-@mcp.tool()
-def list_backends() -> str:
-    """List all configured backends."""
-    from src.tools import backend as backend_tools
-    return backend_tools.list_backends()
+    parser = OpenAPIParser(spec)
+    endpoints = parser.list_endpoints()
 
+    if not endpoints:
+        return "No endpoints found."
 
-@mcp.tool()
-def set_active_backend(backend_id: str) -> str:
-    """Set the active backend."""
-    from src.tools import backend as backend_tools
-    return backend_tools.set_active_backend(backend_id)
+    by_path = {}
+    for ep in endpoints:
+        path = ep["path"]
+        if path not in by_path:
+            by_path[path] = []
+        by_path[path].append(ep)
 
+    lines = ["## API Endpoints", ""]
+    for path, eps in sorted(by_path.items()):
+        lines.append(f"### {path}")
+        for ep in eps:
+            lines.append(f"- **{ep['method']}**")
+            if ep.get("summary"):
+                lines.append(f"  - {ep['summary']}")
+        lines.append("")
 
-@mcp.tool()
-def get_current_backend() -> str:
-    """Get info about current backend."""
-    from src.tools import backend as backend_tools
-    return backend_tools.get_current_backend_info()
-
-
-@mcp.tool()
-def add_environment(backend_id: str, env_name: str, base_url: str) -> str:
-    """Add an environment to a backend (e.g., dev, test, prod).
-
-    Args:
-        backend_id: Backend ID
-        env_name: Environment name (e.g., "dev", "test", "prod")
-        base_url: Base URL for this environment
-    """
-    from src.tools import backend as backend_tools
-    return backend_tools.add_environment(backend_id, env_name, base_url)
-
-
-@mcp.tool()
-def set_environment(backend_id: str, env_name: str) -> str:
-    """Set active environment for a backend."""
-    from src.tools import backend as backend_tools
-    return backend_tools.set_environment(backend_id, env_name)
-
-
-@mcp.tool()
-def update_auth(
-    backend_id: str,
-    auth_type: str,
-    auth_token: str = "",
-    auth_api_key: str = "",
-    auth_api_key_name: str = "X-API-Key",
-    auth_api_key_location: str = "header",
-    auth_username: str = "",
-    auth_password: str = "",
-) -> str:
-    """Update authentication for a backend."""
-    from src.tools import backend as backend_tools
-    return backend_tools.update_auth(
-        backend_id=backend_id,
-        auth_type=auth_type,
-        auth_token=auth_token,
-        auth_api_key=auth_api_key,
-        auth_api_key_name=auth_api_key_name,
-        auth_api_key_location=auth_api_key_location,
-        auth_username=auth_username,
-        auth_password=auth_password,
-    )
-
-
-# ========== API 探索工具 ==========
-
-@mcp.tool()
-def load_spec(backend_id: str = "") -> str:
-    """Load/refresh OpenAPI spec for a backend."""
-    from src.tools import explore
-    return explore.load_spec(backend_id)
-
-
-@mcp.tool()
-def list_endpoints(group_by: str = "path") -> str:
-    """List all API endpoints.
-
-    Args:
-        group_by: "path" or "tag" - how to group endpoints
-    """
-    from src.tools import explore
-    return explore.list_endpoints(group_by)
+    return "\n".join(lines)
 
 
 @mcp.tool()
@@ -156,15 +105,95 @@ def get_endpoint(path: str, method: str = "GET") -> str:
         path: API path (e.g., "/users/{id}")
         method: HTTP method (GET, POST, PUT, DELETE, PATCH)
     """
-    from src.tools import explore
-    return explore.get_endpoint_details(path, method)
+    from src.parser.openapi import OpenAPIParser
+
+    spec, error = _load_spec()
+    if error:
+        return error
+
+    parser = OpenAPIParser(spec)
+    details = parser.get_endpoint_details(path.rstrip("/"), method.lower())
+
+    if not details:
+        return f"Endpoint {method} {path} not found."
+
+    lines = [f"## {details['method']} {details['path']}", ""]
+
+    if details.get("summary"):
+        lines.append(f"**Summary:** {details['summary']}")
+        lines.append("")
+
+    if details.get("description"):
+        lines.append(details["description"])
+        lines.append("")
+
+    # Parameters
+    params = details.get("parameters", [])
+    if params:
+        lines.append("### Parameters")
+        lines.append("")
+        for param in params:
+            required = " (required)" if param.get("required") else ""
+            lines.append(f"- **{param['name']}** ({param['in']}){required}")
+            if param.get("description"):
+                lines.append(f"  - {param['description']}")
+            schema = param.get("schema", {})
+            if schema:
+                type_ = schema.get("type", "any")
+                lines.append(f"  - Type: `{type_}`")
+            lines.append("")
+
+    # Request Body
+    body = details.get("request_body")
+    if body:
+        lines.append("### Request Body")
+        lines.append("")
+        if body.get("description"):
+            lines.append(body["description"])
+        schema = body.get("schema", {})
+        if schema:
+            lines.append("```json")
+            lines.append(json.dumps(schema, indent=2, ensure_ascii=False))
+            lines.append("```")
+        lines.append("")
+
+    # Responses
+    responses = details.get("responses", {})
+    if responses:
+        lines.append("### Responses")
+        lines.append("")
+        for status, response in responses.items():
+            lines.append(f"#### {status}")
+            lines.append(response.get("description", ""))
+            lines.append("")
+
+    return "\n".join(lines)
 
 
 @mcp.tool()
 def list_schemas() -> str:
     """List all Schema definitions."""
-    from src.tools import explore
-    return explore.get_schemas()
+    from src.parser.openapi import OpenAPIParser
+
+    spec, error = _load_spec()
+    if error:
+        return error
+
+    parser = OpenAPIParser(spec)
+    schemas = parser.get_schemas()
+
+    if not schemas:
+        return "No schemas found."
+
+    lines = ["## Schema Definitions", ""]
+    for name, schema in schemas.items():
+        lines.append(f"### {name}")
+        lines.append("```json")
+        lines.append(json.dumps(schema, indent=2, ensure_ascii=False))
+        lines.append("```")
+        lines.append("")
+
+    return "\n".join(lines)
 
 
 @mcp.tool()
@@ -174,27 +203,32 @@ def get_schema(schema_name: str) -> str:
     Args:
         schema_name: Name of the schema (e.g., "User", "Order")
     """
-    from src.tools import explore
-    return explore.get_schema(schema_name)
+    from src.parser.openapi import OpenAPIParser
 
+    spec, error = _load_spec()
+    if error:
+        return error
 
-@mcp.tool()
-def get_api_info() -> str:
-    """Get API information."""
-    from src.tools import explore
-    return explore.get_api_info()
+    parser = OpenAPIParser(spec)
+    schema = parser.get_schema(schema_name)
 
+    if not schema:
+        return f"Schema '{schema_name}' not found."
 
-# ========== API 测试工具 ==========
+    lines = [f"## Schema: {schema_name}", ""]
+    lines.append("```json")
+    lines.append(json.dumps(schema, indent=2, ensure_ascii=False))
+    lines.append("```")
+
+    return "\n".join(lines)
+
 
 @mcp.tool()
 def call_api(
     path: str,
     method: str = "GET",
     params: str = "{}",
-    headers: str = "{}",
     body: str = "",
-    backend_id: str = "",
 ) -> str:
     """Call an API endpoint.
 
@@ -202,88 +236,70 @@ def call_api(
         path: API path (e.g., "/users/123")
         method: HTTP method
         params: Query parameters as JSON string (e.g., '{"limit": 10}')
-        headers: Additional headers as JSON string
         body: Request body as JSON string
-        backend_id: Backend ID (uses active if not specified)
     """
-    from src.tools import test as test_tools
-    return test_tools.call_api(path, method, params, headers, body, backend_id)
+    from src import config
+    import time
 
+    base_url = config.get_base_url()
+    if not base_url:
+        return "Not configured. Run configure_swagger first."
 
-@mcp.tool()
-def test_endpoint(path: str, method: str = "GET") -> str:
-    """Test an endpoint using auto-filled parameters from spec.
+    # Parse parameters
+    try:
+        query_params = json.loads(params) if params else {}
+    except json.JSONDecodeError:
+        return f"Invalid JSON in params: {params}"
 
-    Uses example values from the OpenAPI spec to fill in parameters.
-    """
-    from src.tools import test as test_tools
-    return test_tools.test_endpoint(path, method)
+    # Build URL
+    url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
+    # Prepare body
+    request_body = None
+    if body:
+        try:
+            request_body = json.loads(body)
+        except json.JSONDecodeError:
+            return f"Invalid JSON in body: {body}"
 
-@mcp.tool()
-def generate_request(path: str, method: str = "GET") -> str:
-    """Generate request parameters from spec (without calling API).
+    # Make request
+    start_time = time.time()
+    try:
+        response = requests.request(
+            method=method.upper(),
+            url=url,
+            params=query_params,
+            json=request_body,
+            timeout=30,
+        )
+    except Exception as e:
+        return f"Request failed: {str(e)}"
 
-    Shows what parameters are needed for an endpoint.
-    """
-    from src.tools import test as test_tools
-    return test_tools.generate_request(path, method)
+    elapsed = time.time() - start_time
 
+    # Format response
+    lines = [
+        "## API Response",
+        "",
+        f"**Status:** {response.status_code} {response.reason}",
+        f"**Time:** {elapsed*1000:.2f}ms",
+        "",
+    ]
 
-# ========== 配置文件工具 ==========
+    # Response body
+    try:
+        response_json = response.json()
+        lines.append("### Body")
+        lines.append("```json")
+        lines.append(json.dumps(response_json, indent=2, ensure_ascii=False))
+        lines.append("```")
+    except json.JSONDecodeError:
+        lines.append("### Body")
+        lines.append("```")
+        lines.append(response.text[:2000])
+        lines.append("```")
 
-@mcp.tool()
-def load_backends_from_file(file_path: str) -> str:
-    """Load backends from a configuration file (JSON or YAML).
-
-    Args:
-        file_path: Path to the config file
-
-    Example JSON config:
-    {
-      "backends": [
-        {
-          "id": "my-api",
-          "name": "My API",
-          "base_url": "https://api.example.com",
-          "spec_source": "https://api.example.com/openapi.json",
-          "spec_type": "url",
-          "auth_type": "bearer",
-          "auth_config": {"token": "your-token"},
-          "environments": {
-            "dev": {"base_url": "https://dev.api.example.com"},
-            "prod": {"base_url": "https://api.example.com"}
-          }
-        }
-      ],
-      "active_backend": "my-api"
-    }
-    """
-    from src.tools import config_file as config_file_tools
-    return config_file_tools.load_backends_from_file(file_path)
-
-
-@mcp.tool()
-def export_backends_to_file(file_path: str, format: str = "json") -> str:
-    """Export current backends to a configuration file.
-
-    Args:
-        file_path: Path to save the config file
-        format: "json" or "yaml"
-    """
-    from src.tools import config_file as config_file_tools
-    return config_file_tools.export_backends_to_file(file_path, format)
-
-
-@mcp.tool()
-def get_config_template(format: str = "json") -> str:
-    """Get configuration file template.
-
-    Args:
-        format: "json" or "yaml"
-    """
-    from src.tools import config_file as config_file_tools
-    return config_file_tools.get_config_template(format)
+    return "\n".join(lines)
 
 
 def main():
