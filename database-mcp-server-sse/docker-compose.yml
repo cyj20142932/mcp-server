@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mcp-db-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-db-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config/databases.json:/app/config/databases.json:ro
+    environment:
+      - MCP_DB_CONFIG=/app/config/databases.json
+    restart: unless-stopped
+    # 生产环境可取消注释资源限制
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+# 创建配置目录（可选）
+# 首次运行前创建 config 目录并放入 databases.json
+# volumes:
+#   config:
