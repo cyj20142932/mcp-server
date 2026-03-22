@@ -1,0 +1,28 @@
+{
+  "databases": {
+    "db_prod": {
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "user": "root",
+      "password": "your_password",
+      "database": "production"
+    },
+    "db_test": {
+      "type": "starrocks",
+      "host": "localhost",
+      "port": 9030,
+      "user": "root",
+      "password": "",
+      "database": "test"
+    },
+    "db_oracle": {
+      "type": "oracle",
+      "host": "localhost",
+      "port": 1521,
+      "user": "system",
+      "password": "your_password",
+      "service_name": "ORCL"
+    }
+  }
+}

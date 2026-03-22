@@ -1,0 +1,15 @@
+[project]
+name = "mcp-db-server-sse"
+version = "1.0.0"
+description = "MCP Server for MySQL, Oracle, StarRocks (支持 Streamable HTTP)"
+requires-python = ">=3.8"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "mysql-connector-python>=8.0.0",
+    "oracledb>=2.0.0",
+    "pyarrow>=14.0.0",
+]
+
+[project.scripts]
+mcp-db-server = "src.server:main"
+mcp-db-server-sse = "src.server:main"

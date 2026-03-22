@@ -1,24 +1,30 @@
-"""MCP Server for Swagger/OpenAPI - simple version."""
+"""MCP Server for Swagger/OpenAPI - Swagger/OpenAPI 解析与测试工具"""
+import sys
+import os
+from pathlib import Path
 import json
+
+# 添加父目录到路径以便导入模块
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import requests
 import yaml
-from pathlib import Path
 from fastmcp import FastMCP
 
 mcp = FastMCP("swagger-mcp-server")
 
 
 def _load_spec():
-    """Load OpenAPI spec from config."""
+    """从配置中加载 OpenAPI 规范文件。"""
     from src import config
 
     spec_file = config.get_spec_file()
     if not spec_file:
-        return None, "Not configured. Run configure_swagger first."
+        return None, "未配置。请先运行 configure_swagger。"
 
     spec_data = None
 
-    # Check if it's a URL
+    # 检查是否为 URL
     if spec_file.startswith("http://") or spec_file.startswith("https://"):
         try:
             response = requests.get(spec_file, timeout=30)
@@ -30,12 +36,12 @@ def _load_spec():
             except json.JSONDecodeError:
                 spec_data = yaml.safe_load(content)
         except Exception as e:
-            return None, f"Failed to fetch spec: {e}"
+            return None, f"获取规范文件失败: {e}"
     else:
-        # It's a file path
+        # 文件路径
         spec_path = Path(spec_file)
         if not spec_path.exists():
-            return None, f"Spec file not found: {spec_file}"
+            return None, f"规范文件不存在: {spec_file}"
 
         try:
             with open(spec_path, "r", encoding="utf-8") as f:
@@ -46,18 +52,18 @@ def _load_spec():
             except json.JSONDecodeError:
                 spec_data = yaml.safe_load(content)
         except Exception as e:
-            return None, f"Failed to load spec: {e}"
+            return None, f"加载规范文件失败: {e}"
 
     return spec_data, None
 
 
 @mcp.tool()
 def configure_swagger(spec_source: str, base_url: str) -> str:
-    """Configure OpenAPI spec file/URL and base URL.
+    """配置 OpenAPI 规范文件/URL 和基础 URL。
 
-    Args:
-        spec_source: Path to OpenAPI/Swagger JSON file, or URL to fetch spec
-        base_url: Base URL of the API (e.g., https://api.example.com)
+    参数:
+        spec_source: OpenAPI/Swagger JSON 文件路径或获取规范的 URL
+        base_url: API 的基础 URL (例如 https://api.example.com)
     """
     from src import config
     return config.configure(spec_source, base_url)
@@ -65,7 +71,7 @@ def configure_swagger(spec_source: str, base_url: str) -> str:
 
 @mcp.tool()
 def list_endpoints() -> str:
-    """List all API endpoints from the OpenAPI spec."""
+    """列出 OpenAPI 规范中的所有 API 端点。"""
     from src.parser.openapi import OpenAPIParser
 
     spec, error = _load_spec()
@@ -76,7 +82,7 @@ def list_endpoints() -> str:
     endpoints = parser.list_endpoints()
 
     if not endpoints:
-        return "No endpoints found."
+        return "未找到端点。"
 
     by_path = {}
     for ep in endpoints:
@@ -85,7 +91,7 @@ def list_endpoints() -> str:
             by_path[path] = []
         by_path[path].append(ep)
 
-    lines = ["## API Endpoints", ""]
+    lines = ["## API 端点", ""]
     for path, eps in sorted(by_path.items()):
         lines.append(f"### {path}")
         for ep in eps:
@@ -99,11 +105,11 @@ def list_endpoints() -> str:
 
 @mcp.tool()
 def get_endpoint(path: str, method: str = "GET") -> str:
-    """Get detailed information about an API endpoint.
+    """获取 API 端点的详细信息。
 
-    Args:
-        path: API path (e.g., "/users/{id}")
-        method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+    参数:
+        path: API 路径 (例如 "/users/{id}")
+        method: HTTP 方法 (GET, POST, PUT, DELETE, PATCH)
     """
     from src.parser.openapi import OpenAPIParser
 
@@ -115,38 +121,38 @@ def get_endpoint(path: str, method: str = "GET") -> str:
     details = parser.get_endpoint_details(path.rstrip("/"), method.lower())
 
     if not details:
-        return f"Endpoint {method} {path} not found."
+        return f"未找到端点 {method} {path}。"
 
     lines = [f"## {details['method']} {details['path']}", ""]
 
     if details.get("summary"):
-        lines.append(f"**Summary:** {details['summary']}")
+        lines.append(f"**摘要:** {details['summary']}")
         lines.append("")
 
     if details.get("description"):
         lines.append(details["description"])
         lines.append("")
 
-    # Parameters
+    # 参数
     params = details.get("parameters", [])
     if params:
-        lines.append("### Parameters")
+        lines.append("### 参数")
         lines.append("")
         for param in params:
-            required = " (required)" if param.get("required") else ""
+            required = " (必填)" if param.get("required") else ""
             lines.append(f"- **{param['name']}** ({param['in']}){required}")
             if param.get("description"):
                 lines.append(f"  - {param['description']}")
             schema = param.get("schema", {})
             if schema:
                 type_ = schema.get("type", "any")
-                lines.append(f"  - Type: `{type_}`")
+                lines.append(f"  - 类型: `{type_}`")
             lines.append("")
 
-    # Request Body
+    # 请求体
     body = details.get("request_body")
     if body:
-        lines.append("### Request Body")
+        lines.append("### 请求体")
         lines.append("")
         if body.get("description"):
             lines.append(body["description"])
@@ -157,10 +163,10 @@ def get_endpoint(path: str, method: str = "GET") -> str:
             lines.append("```")
         lines.append("")
 
-    # Responses
+    # 响应
     responses = details.get("responses", {})
     if responses:
-        lines.append("### Responses")
+        lines.append("### 响应")
         lines.append("")
         for status, response in responses.items():
             lines.append(f"#### {status}")
@@ -172,7 +178,7 @@ def get_endpoint(path: str, method: str = "GET") -> str:
 
 @mcp.tool()
 def list_schemas() -> str:
-    """List all Schema definitions."""
+    """列出所有 Schema 定义。"""
     from src.parser.openapi import OpenAPIParser
 
     spec, error = _load_spec()
@@ -183,9 +189,9 @@ def list_schemas() -> str:
     schemas = parser.get_schemas()
 
     if not schemas:
-        return "No schemas found."
+        return "未找到 Schema。"
 
-    lines = ["## Schema Definitions", ""]
+    lines = ["## Schema 定义", ""]
     for name, schema in schemas.items():
         lines.append(f"### {name}")
         lines.append("```json")
@@ -198,10 +204,10 @@ def list_schemas() -> str:
 
 @mcp.tool()
 def get_schema(schema_name: str) -> str:
-    """Get a specific Schema definition.
+    """获取指定的 Schema 定义。
 
-    Args:
-        schema_name: Name of the schema (e.g., "User", "Order")
+    参数:
+        schema_name: Schema 名称 (例如 "User", "Order")
     """
     from src.parser.openapi import OpenAPIParser
 
@@ -213,7 +219,7 @@ def get_schema(schema_name: str) -> str:
     schema = parser.get_schema(schema_name)
 
     if not schema:
-        return f"Schema '{schema_name}' not found."
+        return f"未找到 Schema '{schema_name}'。"
 
     lines = [f"## Schema: {schema_name}", ""]
     lines.append("```json")
@@ -230,39 +236,39 @@ def call_api(
     params: str = "{}",
     body: str = "",
 ) -> str:
-    """Call an API endpoint.
+    """调用 API 端点。
 
-    Args:
-        path: API path (e.g., "/users/123")
-        method: HTTP method
-        params: Query parameters as JSON string (e.g., '{"limit": 10}')
-        body: Request body as JSON string
+    参数:
+        path: API 路径 (例如 "/users/123")
+        method: HTTP 方法
+        params: 查询参数 JSON 字符串 (例如 '{"limit": 10}')
+        body: 请求体 JSON 字符串
     """
     from src import config
     import time
 
     base_url = config.get_base_url()
     if not base_url:
-        return "Not configured. Run configure_swagger first."
+        return "未配置。请先运行 configure_swagger。"
 
-    # Parse parameters
+    # 解析参数
     try:
         query_params = json.loads(params) if params else {}
     except json.JSONDecodeError:
-        return f"Invalid JSON in params: {params}"
+        return f"参数 JSON 格式无效: {params}"
 
-    # Build URL
+    # 构建 URL
     url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
-    # Prepare body
+    # 准备请求体
     request_body = None
     if body:
         try:
             request_body = json.loads(body)
         except json.JSONDecodeError:
-            return f"Invalid JSON in body: {body}"
+            return f"请求体 JSON 格式无效: {body}"
 
-    # Make request
+    # 发送请求
     start_time = time.time()
     try:
         response = requests.request(
@@ -273,28 +279,28 @@ def call_api(
             timeout=30,
         )
     except Exception as e:
-        return f"Request failed: {str(e)}"
+        return f"请求失败: {str(e)}"
 
     elapsed = time.time() - start_time
 
-    # Format response
+    # 格式化响应
     lines = [
-        "## API Response",
+        "## API 响应",
         "",
-        f"**Status:** {response.status_code} {response.reason}",
-        f"**Time:** {elapsed*1000:.2f}ms",
+        f"**状态:** {response.status_code} {response.reason}",
+        f"**耗时:** {elapsed*1000:.2f}ms",
         "",
     ]
 
-    # Response body
+    # 响应体
     try:
         response_json = response.json()
-        lines.append("### Body")
+        lines.append("### 响应体")
         lines.append("```json")
         lines.append(json.dumps(response_json, indent=2, ensure_ascii=False))
         lines.append("```")
     except json.JSONDecodeError:
-        lines.append("### Body")
+        lines.append("### 响应体")
         lines.append("```")
         lines.append(response.text[:2000])
         lines.append("```")
@@ -303,7 +309,7 @@ def call_api(
 
 
 def main():
-    """Main entry point."""
+    """主入口点。"""
     mcp.run()
 
 

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python install.py)",
+      "Bash(python -c \"from src.config import get_config; c = get_config\\(\\); c.load\\(\\); print\\(''Config loaded:'', c.list_ids\\(\\)\\)\")",
+      "Bash(MCP_DB_CONFIG=\"C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python\\\\databases.json\" python -c \"from src.config import get_config; c = get_config\\(\\); c.load\\(\\); print\\(''Config loaded:'', c.list_ids\\(\\)\\)\")",
+      "Bash(tasklist)",
+      "Bash(findstr python:*)",
+      "Bash(set \"MCP_DB_CONFIG=C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python\\\\databases.json\")",
+      "Bash(python src/server.py)",
+      "Bash(pip install:*)",
+      "Bash(findstr -i python)",
+      "Bash(cmd /c \"set MCP_DB_CONFIG=C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python\\\\databases.json&& python src\\\\server.py\")",
+      "Bash(python -c \":*)",
+      "mcp__ide__executeCode",
+      "Bash(where python:*)",
+      "Bash(\"C:\\\\Program Files\\\\Python312\\\\python.exe\" -c \"import sys; sys.path.insert\\(0, r'C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python'\\); os.environ['MCP_DB_CONFIG'] = r'C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python\\\\databases.json'; from src.server import mcp; print\\('OK'\\)\")",
+      "Bash(\"C:\\\\Program Files\\\\Python312\\\\python.exe\" \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\mcp_python\\\\test_server.py\")",
+      "Bash(findstr -i claude)",
+      "Bash(set MCP_DB_CONFIG=C:UsersAdministratorDesktopmcp_pythondatabases.json)",
+      "Bash(\"C:\\\\Program Files\\\\Python312\\\\python.exe\" src/server.py)",
+      "Bash(python -c \"from src.tools import metadata, manipulation; print\\(''Import OK''\\)\")",
+      "Bash(python -c \"import src.server; print\\(''Server import OK''\\)\")"
+    ]
+  },
+  "mcpServers": {
+    "mcp-db-server": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\Administrator\\Desktop\\mcp_python\\src\\server.py"
+      ],
+      "env": {
+        "MCP_DB_CONFIG": "C:\\Users\\Administrator\\Desktop\\mcp_python\\databases.json"
+      }
+    }
+  }
+}

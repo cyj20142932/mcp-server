@@ -4,7 +4,13 @@
       "Bash(python -m src.server)",
       "Bash(pip show:*)",
       "Bash(pip index:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(cp:*)",
+      "Bash(timeout 5 python -m src.server --transport sse --port 8080)",
+      "WebSearch",
+      "Bash(mcp-proxy:*)",
+      "Bash(netstat -ano)",
+      "mcp__database-mcp-server1__get_tables"
     ]
   }
 }

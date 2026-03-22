@@ -1,6 +1,7 @@
-"""MCP Database Server - 数据库 MCP 服务器"""
+"""MCP Database Server - 数据库 MCP 服务器 (支持 Streamable HTTP)"""
 import sys
 import os
+import argparse
 from pathlib import Path
 import json
 
@@ -9,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastmcp import FastMCP
 
-mcp = FastMCP("mcp-db-server")
+mcp = FastMCP("mcp-db-server-sse")
 
 
 @mcp.tool()
@@ -177,7 +178,31 @@ def rollback_transaction(connect_id: str) -> str:
 
 def main():
     """主入口点。"""
-    mcp.run()
+    parser = argparse.ArgumentParser(description="MCP Database Server (Streamable HTTP 支持)")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "streamable-http"],
+        default="stdio",
+        help="传输协议: stdio 或 streamable-http (默认: stdio)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Streamable HTTP 模式下的端口号 (默认: 8080)"
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Streamable HTTP 模式下的主机地址 (默认: 0.0.0.0)"
+    )
+    args = parser.parse_args()
+
+    if args.transport == "streamable-http":
+        print(f"启动 Streamable HTTP 服务器: {args.host}:{args.port}", file=sys.stderr)
+        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

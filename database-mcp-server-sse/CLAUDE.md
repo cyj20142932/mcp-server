@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-**mcp-db-server** 是一个 Model Context Protocol (MCP) 服务器，为 MySQL、Oracle 和 StarRocks 提供数据库工具。它暴露三个 MCP 工具：`get_ddl`、`get_tables` 和 `execute_query`。
+**mcp-db-server-sse** 是一个支持 Streamable HTTP 传输协议的 Model Context Protocol (MCP) 服务器，为 MySQL、Oracle 和 StarRocks 提供数据库工具。
 
 ## 常用命令
 
@@ -12,10 +12,17 @@
 
 ```powershell
 # 安装依赖
-pip install -r requirements.txt
+pip install -e .
 
-# 运行 MCP 服务器（stdin/stdout 模式）
+# 运行 MCP 服务器（stdio 模式，默认）
 python -m src.server
+
+# 运行 MCP 服务器（Streamable HTTP 模式）
+python -m src.server --transport streamable-http
+# 指定端口
+python -m src.server --transport streamable-http --port 9000
+# 指定主机和端口
+python -m src.server --transport streamable-http --host 127.0.0.1 --port 8080
 
 # 运行测试
 python test_server.py
@@ -28,13 +35,19 @@ set MCP_DB_CONFIG=C:\path\to\databases.json
 
 ```bash
 # 安装依赖
-pip install -r requirements.txt
+pip install -e .
 
-# 运行 MCP 服务器（stdin/stdout 模式）
+# 运行 MCP 服务器（stdio 模式，默认）
 python -m src.server
-
-# 或使用已安装的入口点
+# 或
 mcp-db-server
+
+# 运行 MCP 服务器（Streamable HTTP 模式）
+python -m src.server --transport streamable-http
+# 指定端口
+python -m src.server --transport streamable-http --port 9000
+# 指定主机和端口
+python -m src.server --transport streamable-http --host 127.0.0.1 --port 8080
 
 # 运行测试
 python test_server.py
@@ -47,7 +60,7 @@ export MCP_DB_CONFIG=/path/to/databases.json
 
 ```
 src/
-├── server.py        # FastMCP 服务器入口，定义3个工具
+├── server.py        # FastMCP 服务器入口，定义所有 MCP 工具，支持 stdio/Streamable HTTP 两种传输模式
 ├── config.py        # ConfigLoader 加载 databases.json，管理连接配置
 ├── database/
 │   ├── base.py      # 抽象 DatabaseBase 类
@@ -56,7 +69,9 @@ src/
 │   └── starrocks.py # StarRocksDatabase 实现（MySQL 协议）
 └── tools/
     ├── ddl.py       # get_ddl, get_tables 函数
-    └── query.py     # execute_query 函数
+    ├── query.py     # execute_query 函数
+    ├── metadata.py  # 元数据查询工具
+    └── manipulation.py # 数据操作工具
 ```
 
 **数据库工厂模式**：`database/__init__.py` 导出 `create_database(config)`，根据 `config.type` 返回相应的 DatabaseBase 子类。

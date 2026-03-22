@@ -1,0 +1,20 @@
+{
+  "databases": {
+    "db_prod": {
+      "type": "mysql",
+      "host": "192.168.1.119",
+      "port": 3306,
+      "user": "root",
+      "password": "20142932",
+      "database": "test"
+    },
+    "db_test": {
+      "type": "starrocks",
+      "host": "localhost",
+      "port": 9030,
+      "user": "root",
+      "password": "",
+      "database": "test"
+    }
+  }
+}
