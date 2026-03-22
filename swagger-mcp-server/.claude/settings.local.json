@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import src.server; print('Server import OK')\")"
+    ]
+  },
+  "mcpServers": {
+    "swagger-mcp-server": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\Administrator\\.config\\superpowers\\worktrees\\swagger-mcp-server\\implement\\swagger-mcp-server\\src\\server.py"
+      ]
+    }
+  }
+}
