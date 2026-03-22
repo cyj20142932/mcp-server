@@ -1,0 +1,29 @@
+active_backend: test-api
+backends:
+- active_environment: default
+  auth_config: {}
+  auth_type: none
+  base_url: https://petstore.swagger.io/v2
+  environments:
+    default:
+      active: true
+      base_url: https://petstore.swagger.io/v2
+  id: petstore
+  name: Petstore
+  spec_source: https://petstore.swagger.io/v2/swagger.json
+  spec_type: url
+  title: Swagger Petstore
+  version: 1.0.7
+- active_environment: default
+  auth_config: {}
+  auth_type: none
+  base_url: https://petstore.swagger.io/v2
+  environments:
+    default:
+      base_url: https://petstore.swagger.io/v2
+  id: test-api
+  name: Test API
+  spec_source: https://petstore.swagger.io/v2/swagger.json
+  spec_type: url
+  title: Test API
+  version: 1.0.0

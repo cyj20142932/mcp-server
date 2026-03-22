@@ -1,0 +1,12 @@
+backends:
+  - id: test-api
+    name: Test API
+    base_url: https://petstore.swagger.io/v2
+    spec_source: https://petstore.swagger.io/v2/swagger.json
+    spec_type: url
+    auth_type: none
+    environments:
+      default:
+        base_url: https://petstore.swagger.io/v2
+
+active_backend: test-api
