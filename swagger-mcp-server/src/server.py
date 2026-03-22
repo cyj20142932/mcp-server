@@ -230,6 +230,62 @@ def generate_request(path: str, method: str = "GET") -> str:
     return test_tools.generate_request(path, method)
 
 
+# ========== 配置文件工具 ==========
+
+@mcp.tool()
+def load_backends_from_file(file_path: str) -> str:
+    """Load backends from a configuration file (JSON or YAML).
+
+    Args:
+        file_path: Path to the config file
+
+    Example JSON config:
+    {
+      "backends": [
+        {
+          "id": "my-api",
+          "name": "My API",
+          "base_url": "https://api.example.com",
+          "spec_source": "https://api.example.com/openapi.json",
+          "spec_type": "url",
+          "auth_type": "bearer",
+          "auth_config": {"token": "your-token"},
+          "environments": {
+            "dev": {"base_url": "https://dev.api.example.com"},
+            "prod": {"base_url": "https://api.example.com"}
+          }
+        }
+      ],
+      "active_backend": "my-api"
+    }
+    """
+    from src.tools import config_file as config_file_tools
+    return config_file_tools.load_backends_from_file(file_path)
+
+
+@mcp.tool()
+def export_backends_to_file(file_path: str, format: str = "json") -> str:
+    """Export current backends to a configuration file.
+
+    Args:
+        file_path: Path to save the config file
+        format: "json" or "yaml"
+    """
+    from src.tools import config_file as config_file_tools
+    return config_file_tools.export_backends_to_file(file_path, format)
+
+
+@mcp.tool()
+def get_config_template(format: str = "json") -> str:
+    """Get configuration file template.
+
+    Args:
+        format: "json" or "yaml"
+    """
+    from src.tools import config_file as config_file_tools
+    return config_file_tools.get_config_template(format)
+
+
 def main():
     """Main entry point."""
     mcp.run()

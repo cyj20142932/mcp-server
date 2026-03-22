@@ -80,3 +80,72 @@ get_endpoint("/users/{id}", "GET")
 # Call API
 call_api("/users/123", "GET")
 ```
+
+## Claude Code Integration
+
+### Option 1: Add to Claude Code settings
+
+Edit your Claude Code settings file (usually `~/.claude/settings.json` or project's `.claude/settings.local.json`):
+
+```json
+{
+  "mcpServers": {
+    "swagger-mcp-server": {
+      "command": "python",
+      "args": [
+        "C:\\path\\to\\swagger-mcp-server\\src\\server.py"
+      ]
+    }
+  }
+}
+```
+
+Restart Claude Code to load the new MCP server.
+
+### Option 2: Configure via environment variable
+
+Create a config file first, then configure the environment:
+
+```json
+{
+  "backends": [
+    {
+      "id": "my-api",
+      "name": "My API",
+      "base_url": "https://api.example.com",
+      "spec_source": "https://api.example.com/openapi.json",
+      "auth_type": "bearer",
+      "auth_config": {"token": "your-token"}
+    }
+  ],
+  "active_backend": "my-api"
+}
+```
+
+Save as `swagger-config.json`, then use environment variable:
+
+```json
+{
+  "mcpServers": {
+    "swagger-mcp-server": {
+      "command": "python",
+      "args": ["C:\\path\\to\\src\\server.py"],
+      "env": {
+        "SWAGGER_CONFIG": "C:\\path\\to\\swagger-config.json"
+      }
+    }
+  }
+}
+```
+
+### Auto-load config on startup
+
+The server can auto-load a config file if the environment variable is set:
+
+```python
+import os
+os.environ["SWAGGER_CONFIG"] = "C:\\path\\to\\config.yaml"
+
+# Then use load_backends_from_file in your workflow
+load_backends_from_file("C:\\path\\to\\config.yaml")
+```

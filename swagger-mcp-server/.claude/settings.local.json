@@ -1,10 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git check-ignore:*)",
-      "Bash(git worktree:*)",
-      "Bash(pip install:*)",
-      "Bash(python -c \"from src.server import mcp; print\\(''Server imports OK''\\)\")"
+      "Bash(python -c \"import src.server; print('Server import OK')\")"
     ]
+  },
+  "mcpServers": {
+    "swagger-mcp-server": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\Administrator\\.config\\superpowers\\worktrees\\swagger-mcp-server\\implement\\swagger-mcp-server\\src\\server.py"
+      ]
+    }
   }
 }
