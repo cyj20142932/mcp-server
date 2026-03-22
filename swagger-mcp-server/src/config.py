@@ -1,99 +1,97 @@
-"""Configuration management for Swagger MCP Server."""
+"""Config for Swagger MCP Server - simple version."""
 import json
 import os
 from pathlib import Path
-from typing import Any
 
-CONFIG_DIR = Path.home() / ".swagger-mcp-server"
-CONFIG_FILE = CONFIG_DIR / "backends.json"
-
-
-def ensure_config_dir():
-    """Ensure config directory exists."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_FILE = Path.home() / ".swagger-mcp-server" / "config.json"
 
 
 def load_config() -> dict:
-    """Load backends configuration."""
-    ensure_config_dir()
+    """Load configuration from file."""
     if not CONFIG_FILE.exists():
-        return {"backends": {}, "active_backend": None}
+        return {"spec_file": "", "base_url": ""}
 
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
-        return {"backends": {}, "active_backend": None}
+        return {"spec_file": "", "base_url": ""}
 
 
 def save_config(config: dict):
-    """Save backends configuration."""
-    ensure_config_dir()
+    """Save configuration to file."""
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
 
 
-def get_backends() -> dict:
-    """Get all backends."""
-    config = load_config()
-    return config.get("backends", {})
+def get_spec_file() -> str:
+    """Get OpenAPI spec file path or URL."""
+    return load_config().get("spec_file", "")
 
 
-def get_active_backend() -> str | None:
-    """Get active backend ID."""
-    config = load_config()
-    return config.get("active_backend")
+def get_base_url() -> str:
+    """Get base URL."""
+    return load_config().get("base_url", "")
 
 
-def set_active_backend(backend_id: str):
-    """Set active backend."""
-    config = load_config()
-    if backend_id in config.get("backends", {}):
-        config["active_backend"] = backend_id
-        save_config(config)
+def configure(spec_source: str, base_url: str) -> str:
+    """Configure the MCP server with OpenAPI spec.
 
+    Args:
+        spec_source: Path to OpenAPI/Swagger JSON file, or URL to fetch spec from
+        base_url: Base URL of the API (e.g., https://api.example.com)
+    """
+    import requests
+    import yaml
 
-def add_backend(backend_id: str, backend_data: dict):
-    """Add or update a backend."""
-    config = load_config()
-    if "backends" not in config:
-        config["backends"] = {}
-    config["backends"][backend_id] = backend_data
+    spec_data = None
 
-    # Set as active if first backend
-    if config.get("active_backend") is None:
-        config["active_backend"] = backend_id
+    # Check if it's a URL
+    if spec_source.startswith("http://") or spec_source.startswith("https://"):
+        try:
+            response = requests.get(spec_source, timeout=30)
+            response.raise_for_status()
+            content = response.text
 
+            # Try JSON first, then YAML
+            try:
+                spec_data = response.json()
+            except json.JSONDecodeError:
+                spec_data = yaml.safe_load(content)
+        except Exception as e:
+            return f"Failed to fetch spec from URL: {e}"
+    else:
+        # It's a file path
+        spec_path = Path(spec_source)
+        if not spec_path.exists():
+            return f"Spec file not found: {spec_source}"
+
+        try:
+            with open(spec_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Try JSON first, then YAML
+            try:
+                spec_data = json.loads(content)
+            except json.JSONDecodeError:
+                spec_data = yaml.safe_load(content)
+        except Exception as e:
+            return f"Failed to load spec file: {e}"
+
+    if not spec_data:
+        return "Failed to parse spec"
+
+    # Check if it's an OpenAPI spec
+    if "openapi" not in spec_data and "swagger" not in spec_data:
+        return "Not a valid OpenAPI/Swagger spec file"
+
+    # Determine if spec_source is a URL or file
+    is_url = spec_source.startswith("http://") or spec_source.startswith("https://")
+
+    config = {
+        "spec_file": spec_source if is_url else str(Path(spec_source).absolute()),
+        "base_url": base_url,
+    }
     save_config(config)
-
-
-def remove_backend(backend_id: str):
-    """Remove a backend."""
-    config = load_config()
-    if backend_id in config.get("backends", {}):
-        del config["backends"][backend_id]
-
-        # Clear active if removed
-        if config.get("active_backend") == backend_id:
-            config["active_backend"] = None
-            # Set first available as active
-            if config["backends"]:
-                config["active_backend"] = next(iter(config["backends"]))
-
-        save_config(config)
-
-
-def get_backend(backend_id: str) -> dict | None:
-    """Get backend by ID."""
-    backends = get_backends()
-    return backends.get(backend_id)
-
-
-def get_current_backend() -> tuple[str, dict] | tuple[None, None]:
-    """Get current active backend (id, data)."""
-    active_id = get_active_backend()
-    if active_id:
-        backend = get_backend(active_id)
-        if backend:
-            return active_id, backend
-    return None, None
+    return f"Configured: {spec_source}, base_url: {base_url}"
