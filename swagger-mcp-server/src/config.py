@@ -1,9 +1,11 @@
-"""Config for Swagger MCP Server - simple version."""
+"""Config for Swagger MCP Server."""
 import json
 import os
 from pathlib import Path
 
-CONFIG_FILE = Path.home() / ".swagger-mcp-server" / "config.json"
+# Project root directory (where server.py is located)
+PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_FILE = PROJECT_ROOT / "swagger-config.json"
 
 
 def load_config() -> dict:
@@ -20,7 +22,6 @@ def load_config() -> dict:
 
 def save_config(config: dict):
     """Save configuration to file."""
-    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
 
@@ -62,8 +63,11 @@ def configure(spec_source: str, base_url: str) -> str:
         except Exception as e:
             return f"Failed to fetch spec from URL: {e}"
     else:
-        # It's a file path
+        # It's a file path (relative to project root or absolute)
         spec_path = Path(spec_source)
+        if not spec_path.is_absolute():
+            spec_path = PROJECT_ROOT / spec_source
+
         if not spec_path.exists():
             return f"Spec file not found: {spec_source}"
 
@@ -90,7 +94,7 @@ def configure(spec_source: str, base_url: str) -> str:
     is_url = spec_source.startswith("http://") or spec_source.startswith("https://")
 
     config = {
-        "spec_file": spec_source if is_url else str(Path(spec_source).absolute()),
+        "spec_file": spec_source if is_url else spec_source,
         "base_url": base_url,
     }
     save_config(config)

@@ -16,6 +16,20 @@ MCP Server for Swagger/OpenAPI - Simple API exploration and testing for frontend
 pip install -e .
 ```
 
+## Configuration
+
+Edit `swagger-config.json` in the project root:
+
+```json
+{
+  "spec_file": "openapi.json",
+  "base_url": "https://api.example.com"
+}
+```
+
+- `spec_file`: Path to OpenAPI/Swagger JSON file (relative to project root or absolute path), or URL
+- `base_url`: Base URL of the API
+
 ## Tools
 
 - `configure_swagger` - Configure spec file/URL and base URL
@@ -34,7 +48,7 @@ Add to your Claude Code settings:
   "mcpServers": {
     "swagger-mcp-server": {
       "command": "python",
-      "args": ["C:\\path\\to\\swagger-mcp-server\\src\\server.py"]
+      "args": ["path\\to\\swagger-mcp-server\\src\\server.py"]
     }
   }
 }
@@ -51,7 +65,7 @@ configure_swagger(
 
 # Or use local file
 configure_swagger(
-    spec_source="C:\\path\\to\\openapi.json",
+    spec_source="openapi.json",
     base_url="https://api.example.com"
 )
 
@@ -71,7 +85,3 @@ get_schema("User")
 call_api("/users/123", "GET")
 call_api("/users", "POST", body='{"name": "test"}')
 ```
-
-## Configuration
-
-The config is stored at: `~/.swagger-mcp-server/config.json
