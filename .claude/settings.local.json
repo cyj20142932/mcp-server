@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m src.server)",
+      "Bash(pip show:*)",
+      "Bash(pip index:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
