@@ -10,7 +10,10 @@
       "WebSearch",
       "Bash(mcp-proxy:*)",
       "Bash(netstat -ano)",
-      "mcp__database-mcp-server1__get_tables"
+      "mcp__database-mcp-server1__get_tables",
+      "Bash(ls -la C:/Users/Administrator/Desktop/mcp-server/*.md)",
+      "Bash(dir C:UsersAdministratorDesktopmcp-server*.md)",
+      "Bash(git:*)"
     ]
   }
 }
