@@ -8,7 +8,9 @@ dependencies = [
     "mysql-connector-python>=8.0.0",
     "oracledb>=2.0.0",
     "pyarrow>=14.0.0",
+    "click>=8.1.0",
 ]
 
 [project.scripts]
+mcp-db = "src.cli:main"
 mcp-db-server = "src.server:main"
